@@ -71,12 +71,12 @@ def welcome(message):
     bot.reply_to(message, 'Welcome! What would you like me to do today?', reply_markup=main_markup)
 
 @bot.message_handler(func=lambda msg: msg.text == "📥")
-def welcome(message):
+def download(message):
     bot.reply_to(message, 'What would you like to download?', reply_markup=download_markup)
 
 
 @bot.message_handler(func=lambda msg: msg.text == "ℹ️")
-def welcome(message):
+def info(message):
     bot.reply_to(message, 'Developed by AlwaysLivid.')
 
 bot.polling()
