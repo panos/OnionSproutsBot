@@ -10,8 +10,6 @@ Although the initial codebase and plans for the project were created under the p
 
 Needless to say, this project **should not be adapted for any sort of purpose that can be deemed as sensitive** and not purely experimental. Development may cease at any time, but the progress here is going to influence the final result, if something good comes out of it.
 
-This project has been licensed under the [GNU GPL 3](LICENSE) license for reasons of archival and posterity.
-
 **All sort of feedback is immensely appreciated and will be taken into serious consideration.***
 
 Here is the [Relevant Trac ticket](https://trac.torproject.org/projects/tor/ticket/22011).
