@@ -37,11 +37,10 @@ bot = telebot.AsyncTeleBot(token=token)
 
 main_markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
 
-main_button1 = types.KeyboardButton('📥')
-main_button2 = types.KeyboardButton('ℹ️')
+main_button1 = types.KeyboardButton('Download')
+main_button2 = types.KeyboardButton('About')
 
 main_markup.row(main_button1, main_button2)
-
 
 
 download_markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
@@ -56,12 +55,12 @@ download_button3 = types.KeyboardButton('Program 3')
 
 download_markup.row(download_button1, download_button2, download_button3)
 
-
 # TODO: Make the strings translation friendly.
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
     bot.reply_to(message, 'Welcome! What would you like me to do today?', reply_markup=main_markup)
+
 
 @bot.message_handler(func=lambda msg: msg.text == "📥")
 def download(message):
@@ -70,6 +69,6 @@ def download(message):
 
 @bot.message_handler(func=lambda msg: msg.text == "ℹ️")
 def info(message):
-    bot.reply_to(message, 'Developed by AlwaysLivid.')
+    bot.reply_to(message, 'The source code for this bot can be found here; https://github.com/AlwaysLivid/OnionSproutsBot')
 
 bot.polling()
