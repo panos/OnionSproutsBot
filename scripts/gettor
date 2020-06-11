@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+This file is part of GetTor, a service providing alternative methods to download
+the Tor Browser.
+
+:authors: Hiro <hiro@torproject.org>
+          please also see AUTHORS file
+:copyright: (c) 2008-2014, The Tor Project, Inc.
+            (c) 2014, all entities within the AUTHORS file
+:license: see included LICENSE for information
+
+This file starts GetTor as a twistd app. This is the file that is called by
+gettor_service.
+
+"""
+
+from __future__ import print_function
+
+import os.path
+import sys
+
+from os import getcwd
+
+from twisted.application import service
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from gettor.main import run
+
+gettor = service.MultiService()
+application = service.Application("gettor")
+
+run(gettor, application)
