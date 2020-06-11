@@ -1,3 +1,10 @@
 venv
 __pycache__
 *.pyc
+
+# gettor downloads
+*.dmg
+*.exe
+*.tar.xz*
+*.xz
+*.xz*
