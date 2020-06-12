@@ -47,17 +47,17 @@ def welcome(message):
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Download")
-def download(message):
+def download_menu(message):
     bot.reply_to(message, 'Where would you like to download Tor from?', reply_markup=source_markup)
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Internet Archive")
-def download(message):
+def download_ia(message):
     bot.reply_to(message, 'You can obtain a version of the Tor browser here; https://archive.org/details/@gettor', reply_markup=main_markup)
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Google Drive")
-def download(message):
+def download_gdrive(message):
     bot.reply_to(message, 'You can obtain a version of the Tor browser here; https://drive.google.com/open?id=13CADQTsCwrGsIID09YQbNz2DfRMUoxUU', reply_markup=main_markup)
 
 
