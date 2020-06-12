@@ -26,29 +26,6 @@ logging.basicConfig(
 
 bot = telebot.AsyncTeleBot(token=token)
 
-# TODO: Language submenu with additional options.
-# Maybe using country flags would be a solid idea, considering that language barriers
-# would not get in the way.
-#
-# one_time_keyboard instantly closes the keyboard. It works flawlessly, but
-# maybe using types.RemoveKeyboardMarkup() after sending the message in the next function
-# and then replacing it could be a better idea that'd make the bot more user friendly.
-#
-
-# download_markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-# download_markup = types.ReplyKeyboardMarkup()
-
-# TODO: Should these buttons be used for programs, or platforms?
-# TODO: Fetch/parse different versions/locales into different buttons.
-
-# download_button1 = types.KeyboardButton('Program 1')
-# download_button2 = types.KeyboardButton('Program 2')
-# download_button3 = types.KeyboardButton('Program 3')
-
-# download_markup.row(download_button1, download_button2, download_button3)
-
-# TODO: Make the strings translation friendly.
-
 main_markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
 main_button1 = types.KeyboardButton('Download')
 main_button2 = types.KeyboardButton('About')
