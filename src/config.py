@@ -1,0 +1,5 @@
+apiId = ""
+apiHash = ""
+botToken = ""
+endpoint = "https://aus1.torproject.org/torbrowser/update_3/release/downloads.json"
+# endpoint = "https://aus1.torproject.org/torbrowser/update_3/alpha/downloads.json"

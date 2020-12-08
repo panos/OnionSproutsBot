@@ -9,81 +9,69 @@
 # :license: This is Free Software. See LICENSE for license information.
 #
 
-import telebot
-from telebot import types
+from config import *
 
-import asyncio
-import logging
 import requests
-import requests_cache
-import urllib.request
+import re
+from requests import HTTPError
 
-# TODO: Replace the logging/token mechanism.
-# A combination of configparser and environment variables could work.
+from pyrogram import Client, filters
+from pyrogram.types import (InlineQueryResultArticle, InputTextMessageContent,
+                            InlineKeyboardMarkup, InlineKeyboardButton)
 
-token = "" # Use your own token here.
 
-logging.basicConfig(
-    format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s",
-    level=logging.DEBUG
+class User:
+    def __init__(self, platform, locale):
+        self.locale = platform
+        self.platform = locale
+
+
+global response
+response = requests.get(endpoint).json()
+
+OnionSproutsBot = Client(
+    "OnionSproutsBot",
+    apiId,
+    apiHash,
+    bot_token=botToken
 )
 
-bot = telebot.AsyncTeleBot(token=token)
-
-# Main menu
-
-main_button1 = types.KeyboardButton('Download')
-main_button2 = types.KeyboardButton('About')
-
-main_markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-main_markup.add(main_button1, main_button2)
-
-# Providers/Settings
-## TODO: Move the (volatile) links to a separate file.
-## This should be done in order to achieve a higher
-## level of consistency with the gettor project, as well
-## as because keeping things clean is good.
-
-ia_button = types.KeyboardButton('Internet Archive')
-gdrive_button = types.KeyboardButton('Google Drive')
-
-ia_link = "https://archive.org/details/@gettor"
-gdrive_link = "https://drive.google.com/open?id=13CADQTsCwrGsIID09YQbNz2DfRMUoxUU"
-
-tor_url = "https://aus1.torproject.org/torbrowser/update_3/release/downloads.json"
-source_link = "https://github.com/panos/OnionSproutsBot"
-
-# Download menu
-## TODO: Improve the user interface.
-source_markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
-source_markup = types.ReplyKeyboardMarkup()
-source_markup.add(ia_button, gdrive_button)
+# TO-DO: Remove this and replace it with callbacks.
+user = User(
+   locale = "en-US",
+   platform = "win64"
+)
 
 
-@bot.message_handler(commands=['help', 'start'])
-def welcome(message):
-    bot.reply_to(message, 'Welcome! What would you like me to do?', reply_markup=main_markup)
+@OnionSproutsBot.on_message(filters.command("start"))
+async def start_command(client, message):
+        await client.send_message(
+            chat_id=message.chat.id,
+            text="Hi, welcome to OnionSproutsBot! Press the button if you wish to receive a copy of The Tor Browser.",
+	    reply_markup=InlineKeyboardMarkup(
+	            [[InlineKeyboardButton("Receive a copy of Tor", "send_tor")]]
+            )
+        )
 
 
-@bot.message_handler(func=lambda msg: msg.text == "Download")
-def download_menu(message):
-    bot.reply_to(message, 'Where would you like to download Tor from?', reply_markup=source_markup)
+@OnionSproutsBot.on_callback_query(filters.regex("send_tor"))
+async def send_binary(client, callback):
+    print("User clicked on the button.")
+
+    tor_sig = response['downloads'][user.locale][user.platform]['sig']
+    tor_binary = response['downloads'][user.locale][user.platform]['binary']
+
+    download_sig = requests.get(tor_sig, allow_redirects=True, stream=True)
+    download_binary = requests.get(tor_binary, allow_redirects=True, stream=True)
+
+    with open('../downloads/tor_sig.tar.xz', 'wb') as f:
+        f.write(download_sig.content)
+
+    with open('../downloads/tor.tar.xz', 'wb') as f:
+        f.write(download_binary.content)
+
+    await client.send_document(callback.from_user.id, document="../downloads/tor_sig.tar.xz")
+    await client.send_document(callback.from_user.id, document="../downloads/tor.tar.xz")
 
 
-@bot.message_handler(func=lambda msg: msg.text == "Internet Archive")
-def download_ia(message):
-    bot.reply_to(message, f'You can obtain a version of the Tor browser here; {ia_link}', reply_markup=main_markup)
-
-
-@bot.message_handler(func=lambda msg: msg.text == "Google Drive")
-def download_gdrive(message):
-    bot.reply_to(message, f'You can obtain a version of the Tor browser here: {gdrive_link}', reply_markup=main_markup)
-
-
-@bot.message_handler(func=lambda msg: msg.text == "About")
-def info(message):
-    bot.reply_to(message, f'The source code for this bot can be found here: {source_link}', reply_markup=main_markup)
-
-
-bot.polling()
-
+OnionSproutsBot.run()

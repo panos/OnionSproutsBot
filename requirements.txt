@@ -1,1 +1,2 @@
-pyTelegramBotAPI==3.6.7
+pyrogram>=1.0.7
+TgCrypto>=1.2.2
