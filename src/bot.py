@@ -11,6 +11,7 @@
 
 from config import *
 
+import asyncio
 import requests
 import re
 from requests import HTTPError
@@ -49,14 +50,27 @@ async def start_command(client, message):
             chat_id=message.chat.id,
             text="Hi, welcome to OnionSproutsBot! Press the button if you wish to receive a copy of The Tor Browser.",
 	    reply_markup=InlineKeyboardMarkup(
-	            [[InlineKeyboardButton("Receive a copy of Tor", "send_tor")]]
+	            [
+                        [InlineKeyboardButton("Receive a copy of Tor", "send_tor")],
+                        [InlineKeyboardButton("What is Tor?", "explain_tor")]
+                    ]
             )
         )
 
+# This is currently an interesting way of testing asynchronous operations.
+# Works on my machine!
+@OnionSproutsBot.on_callback_query(filters.regex("explain_tor"))
+async def send_explanation(client, callback):
+    await client.send_message(callback.from_user.id, "That's a good question!")
+    await asyncio.sleep(2)
+    await client.send_message(callback.from_user.id, "... Hm... Uh...")
+    await asyncio.sleep(4)
+    await client.send_message(callback.from_user.id, "... Well, that's awkward. I'll probably give you an answer once I organize the strings a bit better.")
 
 @OnionSproutsBot.on_callback_query(filters.regex("send_tor"))
 async def send_binary(client, callback):
     print("User clicked on the button.")
+    await client.send_message(callback.from_user.id, "Got it! I'm going to download then send you the program, as well as a cryptographic signature, in order for you to be able to establish that this copy of The Tor Browser is legitimate. Please wait for a while...")
 
     tor_sig = response['downloads'][user.locale][user.platform]['sig']
     tor_binary = response['downloads'][user.locale][user.platform]['binary']
