@@ -4,7 +4,7 @@
 #
 # :authors: Panagiotis Vasilopoulos <hello@alwayslivid.com>
 #
-# :copyright:   (c) 2020, Panagiotis Vasilopoulos
+# :copyright:   (c) 2020-2021, Panagiotis Vasilopoulos
 #
 # :license: This is Free Software. See LICENSE for license information.
 #
@@ -32,7 +32,13 @@ OnionSproutsBot = Client(
     bot_token=botToken
 )
 
-
+# TO-DO: Ask for the locale when the user initiates the bot, rather
+# than afterwards, and change the language the bot speaks automatically.
+#
+# The language should be asked for initially before showing this selection screen.
+# That way, the instructions and all relevant documentation will be readable and completely
+# understood by the user. For that reason, the bot needs to cache a list of available (or all)
+# locales in the future.
 @OnionSproutsBot.on_message(filters.command("start"))
 async def start_command(client, message):
         await client.send_message(
@@ -51,16 +57,23 @@ async def start_command(client, message):
 # Works on my machine!
 @OnionSproutsBot.on_callback_query(filters.regex("explain_tor"))
 async def send_explanation(client, callback):
-    await client.send_message(callback.from_user.id, "That's a good question!")
+    await client.send_message(callback.from_user.id, "This is a placeholder text.")
     await asyncio.sleep(2)
-    await client.send_message(callback.from_user.id, "... Hm... Uh...")
+    await client.send_message(callback.from_user.id, "It should be used to explain Tor to")
     await asyncio.sleep(4)
     await client.send_message(callback.from_user.id, "... Well, that's awkward. I'll probably give you an answer once I organize the strings a bit better.")
 
 
 @OnionSproutsBot.on_callback_query(filters.regex("request_tor"))
 async def tor_requested(client, callback):
-    await client.send_message(callback.from_user.id, "Got it! I'm going to download then send you the program, as well as a cryptographic signature, in order for you to be able to establish that this copy of The Tor Browser is legitimate.")
+    await client.send_message(callback.from_user.id, "Got it! I'm going to download, then send you, a copy of The Tor Browser.")
+
+    # People generally don't cryptographically verify binaries. It could be a good idea to take advantage of the nature of an IM platform
+    # and teach people how to do that in a user-centered manner. Splitting this into a selection prompt where the user consents to being
+    # sent a copy of Tor could be beneficial.
+
+    await client.send_message(callback.from_user.id, "I will also send you a cryptographic signature, in order for you to be able to establish that it is legitimate.")
+
     platform_keyboard = []
 
     for platform in response['downloads'].keys():
@@ -74,11 +87,6 @@ async def tor_requested(client, callback):
     await client.send_message(callback.from_user.id, "Please select your platform:", reply_markup=platform_markup)
 
 
-# TO-DO: Ask for the locale when the user initiates the bot, rather
-# than afterwards, and change the language the bot speaks automatically.
-#
-# How do we know what locales are available, and how do we know
-# that the locale for one program is going to be available for another?
 @OnionSproutsBot.on_callback_query(filters.regex("select_locale:"))
 async def tor_requested(client, callback):
     platform_keyboard = []
@@ -95,6 +103,8 @@ async def tor_requested(client, callback):
     await client.send_message(callback.from_user.id, "Now, select your locale:", reply_markup=platform_markup)
 
 
+# This is bad, but I'm trying to design the bot's interface definitively first, and then
+# optimize and work on its technical capacities. Think of it as a proof of concept.
 @OnionSproutsBot.on_callback_query(filters.regex("download_tor"))
 async def send_tor(client, callback):
     print(callback.data)
