@@ -15,6 +15,7 @@ import asyncio
 import requests
 import re
 from requests import HTTPError
+import urllib
 
 from pyrogram import Client, filters
 from pyrogram.types import (InlineQueryResultArticle, InputTextMessageContent,
@@ -103,8 +104,9 @@ async def tor_requested(client, callback):
     await client.send_message(callback.from_user.id, "Now, select your locale:", reply_markup=platform_markup)
 
 
-# This is bad, but I'm trying to design the bot's interface definitively first, and then
-# optimize and work on its technical capacities. Think of it as a proof of concept.
+# The function is already asynchronous, but the two files are being downloaded and uploaded sequentially,
+# rather than in an asynchronous manner. That should be fixed. Moreover, the function should behave
+# differently if it finds that the file already exists in the download folder.
 @OnionSproutsBot.on_callback_query(filters.regex("download_tor"))
 async def send_tor(client, callback):
     print(callback.data)
@@ -126,20 +128,28 @@ async def send_tor(client, callback):
     tor_sig = response['downloads'][platform][locale]['sig']
     tor_binary = response['downloads'][platform][locale]['binary']
 
+    # Filenames
+    tor_sig_name = tor_sig.rsplit('/')[-1]
+    tor_binary_name = tor_binary.rsplit('/', 1)[-1]
+
+    # See: https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/40419
+    # tor_sig_name = urllib.request.urlopen(tor_sig).headers['Content-Disposition']
+    # tor_binary_name = urllib.request.urlopen(tor_binary).headers['Content-Disposition']
+
     # Is using allow_redirects secure?
     download_sig = requests.get(tor_sig, allow_redirects=True, stream=True)
     download_binary = requests.get(tor_binary, allow_redirects=True, stream=True)
 
     # TO-DO: Write files asynchronously.
     # TO-DO: Use the file names of the actual files themselves.
-    with open('../downloads/tor_sig.tar.xz', 'wb') as f:
+    with open(f'../downloads/{tor_sig_name}', 'wb') as f:
         f.write(download_sig.content)
 
-    with open('../downloads/tor.tar.xz', 'wb') as f:
+    with open(f'../downloads/{tor_binary_name}', 'wb') as f:
         f.write(download_binary.content)
 
-    await client.send_document(callback.from_user.id, document="../downloads/tor_sig.tar.xz")
-    await client.send_document(callback.from_user.id, document="../downloads/tor.tar.xz")
+    await client.send_document(callback.from_user.id, document=f'../downloads/{tor_sig_name}')
+    await client.send_document(callback.from_user.id, document=f'../downloads/{tor_binary_name}')
 
 
 OnionSproutsBot.run()
