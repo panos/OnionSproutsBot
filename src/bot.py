@@ -56,15 +56,9 @@ async def start_command(client, message):
         )
 
 
-# This is currently an interesting way of testing asynchronous operations.
-# Works on my machine!
 @OnionSproutsBot.on_callback_query(filters.regex("explain_tor"))
 async def send_explanation(client, callback):
-    await client.send_message(callback.from_user.id, "This is a placeholder text.")
-    await asyncio.sleep(2)
-    await client.send_message(callback.from_user.id, "It should be used to explain Tor to")
-    await asyncio.sleep(4)
-    await client.send_message(callback.from_user.id, "... Well, that's awkward. I'll probably give you an answer once I organize the strings a bit better.")
+    await client.send_message(callback.from_user.id, "This is a placeholder.")
 
 
 @OnionSproutsBot.on_callback_query(filters.regex("request_tor"))
