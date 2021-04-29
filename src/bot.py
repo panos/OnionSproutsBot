@@ -115,14 +115,11 @@ async def send_tor(client, callback):
 
     await client.send_message(callback.from_user.id, "OK!")
 
-    # TO-DO: Upload Tor binaries/signatures on a channel automatically.
-    # We could wait upload every single version in every single locale
-    # and then store the cache_id's in order to forward the binaries
-    # immediately, but that would result in tons of wasted bandwidth
-    # and I worry about the bot not being able to keep up.
-    # Therefore, it's better to provide people with what they need.
     tor_sig = response['downloads'][platform][locale]['sig']
     tor_bin = response['downloads'][platform][locale]['binary']
+
+    send_sig_success = False
+    send_bin_success = False
 
     # Filenames
     tor_sig_name = tor_sig.rsplit('/')[-1]
@@ -130,28 +127,47 @@ async def send_tor(client, callback):
 
     await client.send_message(callback.from_user.id, "Sending the files right now, please wait...")
 
-    # - Is using allow_redirects secure?
-    # - The `.name` workaround has to be used because of a lack of proper Content-Disposition
-    # headers under dist.torproject.org. Same goes for `stream=True`, which is also the result of
-    # the web server not declaring the file's contents.
+    # Upload the signature.
+
     download_sig = io.BytesIO(requests.get(tor_sig, allow_redirects=True, stream=True).content)
     download_sig.name = tor_sig_name
+
+    try:
+        tor_sig_object = await client.send_document(callback.from_user.id, document=download_sig)
+        send_bin_success = True
+    except Exception as e:
+        await client.send_message(
+            callback.from_user.id,
+            f"Signature upload failed! Reason: `{e}`")
+        print(e)
+
+    # Upload the binary.
+
     download_bin = io.BytesIO(requests.get(tor_bin, allow_redirects=True, stream=True).content)
     download_bin.name = tor_bin_name
 
-    # This is an experiment that instructs the Telegram backend to download the files
-    # directly, without the files *ever* touching the local hard drive/memory.
-    #
-    # Won't work because dist.torproject.org's Content-Type header value when downloading
-    # files is `text/plain` rather than `application/octet-stream`, which causes the
-    # Telegram backend to freak out and refuse to send it.
-    #
-    # tor_sig_id = await client.send_document(callback.from_user.id, document=tor_sig)
-    # tor_bin_id = await client.send_document(callback.from_user.id, document=tor_bin)
+    try:
+        tor_bin_object = await client.send_document(callback.from_user.id, document=download_bin)
+        send_sig_success = True
+    except Exception as e:
+        await client.send_message(
+            callback.from_user.id,
+            "Binary upload failed! Reason: `{e}`")
+        print(e)
 
-    tor_sig_id = await client.send_document(callback.from_user.id, document=download_sig)
-    tor_bin_id = await client.send_document(callback.from_user.id, document=download_bin)
+    # Set the `file_id`'s of the files that were just uploaded to Telegram in new variable.
+    tor_sig_id = tor_sig_object["document"]["file_id"]
+    tor_bin_id = tor_big_object["document"]["file_id"]
 
-    # TO-DO: Store `tor_file_id` in a database. Handle the cases where the download fails.
+    # Temporary test for sending cached media.
+
+    await client.send_cached_media(callback.from_user.id, file_id=tor_sig_id)
+    await client.send_cached_media(callback.from_user.id, file_id=tor_bin_id)
+
+    '''
+    TO-DO: Store `tor_sig_file.id and tor_bin_file.id` in a database.
+    Handle download and HTTP request failures.
+    '''
+
 
 OnionSproutsBot.run()
