@@ -106,9 +106,6 @@ async def tor_requested(client, callback):
     await client.send_message(callback.from_user.id, "Now, select your locale:", reply_markup=platform_markup)
 
 
-# The function is already asynchronous, but the two files are being downloaded and uploaded sequentially,
-# rather than in an asynchronous manner. That should be fixed. Moreover, the function should behave
-# differently if it finds that the file already exists in the download folder.
 @OnionSproutsBot.on_callback_query(filters.regex("download_tor"))
 async def send_tor(client, callback):
     print(callback.data)
