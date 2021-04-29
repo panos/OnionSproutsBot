@@ -12,6 +12,8 @@
 from config import *
 
 import asyncio
+import io
+import os
 import requests
 import re
 from requests import HTTPError
@@ -112,12 +114,15 @@ async def send_tor(client, callback):
     print(callback.data)
     platform = callback.data.split(':')[1]
     locale = callback.data.split(':')[2]
-    # locale = callback.from_user.language_code
+
     # Detecting the language that the user speaks is not reliable
     # and the codes that Telegram gives us appear as `en`, rather
-    # than e.g. `en-US`, which is what the endpoint needs.
+    # than e.g. `en-US`, which is what the endpoint needs. Manual
+    # conversions are unreliable and bothersome.
+    #
+    # locale = callback.from_user.language_code
 
-    await client.send_message(callback.from_user.id, "Sounds good! I'm going to send you the files now, please wait...")
+    await client.send_message(callback.from_user.id, "OK!")
 
     # TO-DO: Upload Tor binaries/signatures on a channel automatically.
     # We could wait upload every single version in every single locale
@@ -126,30 +131,36 @@ async def send_tor(client, callback):
     # and I worry about the bot not being able to keep up.
     # Therefore, it's better to provide people with what they need.
     tor_sig = response['downloads'][platform][locale]['sig']
-    tor_binary = response['downloads'][platform][locale]['binary']
+    tor_bin = response['downloads'][platform][locale]['binary']
 
     # Filenames
     tor_sig_name = tor_sig.rsplit('/')[-1]
-    tor_binary_name = tor_binary.rsplit('/', 1)[-1]
+    tor_bin_name = tor_bin.rsplit('/', 1)[-1]
 
-    # See: https://gitlab.torproject.org/tpo/applications/tor-browser/-/issues/40419
-    # tor_sig_name = urllib.request.urlopen(tor_sig).headers['Content-Disposition']
-    # tor_binary_name = urllib.request.urlopen(tor_binary).headers['Content-Disposition']
+    await client.send_message(callback.from_user.id, "Sending the files right now, please wait...")
 
-    # Is using allow_redirects secure?
-    download_sig = requests.get(tor_sig, allow_redirects=True, stream=True)
-    download_binary = requests.get(tor_binary, allow_redirects=True, stream=True)
+    # - Is using allow_redirects secure?
+    # - The `.name` workaround has to be used because of a lack of proper Content-Disposition
+    # headers under dist.torproject.org. Same goes for `stream=True`, which is also the result of
+    # the web server not declaring the file's contents.
+    download_sig = io.BytesIO(requests.get(tor_sig, allow_redirects=True, stream=True).content)
+    download_sig.name = tor_sig_name
+    download_bin = io.BytesIO(requests.get(tor_bin, allow_redirects=True, stream=True).content)
+    download_bin.name = tor_bin_name
 
-    # TO-DO: Write files asynchronously.
-    # TO-DO: Use the file names of the actual files themselves.
-    with open(f'../downloads/{tor_sig_name}', 'wb') as f:
-        f.write(download_sig.content)
+    # This is an experiment that instructs the Telegram backend to download the files
+    # directly, without the files *ever* touching the local hard drive/memory.
+    #
+    # Won't work because dist.torproject.org's Content-Type header value when downloading
+    # files is `text/plain` rather than `application/octet-stream`, which causes the
+    # Telegram backend to freak out and refuse to send it.
+    #
+    # tor_sig_id = await client.send_document(callback.from_user.id, document=tor_sig)
+    # tor_bin_id = await client.send_document(callback.from_user.id, document=tor_bin)
 
-    with open(f'../downloads/{tor_binary_name}', 'wb') as f:
-        f.write(download_binary.content)
+    tor_sig_id = await client.send_document(callback.from_user.id, document=download_sig)
+    tor_bin_id = await client.send_document(callback.from_user.id, document=download_bin)
 
-    await client.send_document(callback.from_user.id, document=f'../downloads/{tor_sig_name}')
-    await client.send_document(callback.from_user.id, document=f'../downloads/{tor_binary_name}')
-
+    # TO-DO: Store `tor_file_id` in a database. Handle the cases where the download fails.
 
 OnionSproutsBot.run()
