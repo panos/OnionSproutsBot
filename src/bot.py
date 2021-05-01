@@ -157,7 +157,7 @@ async def send_tor(client, callback):
 
     # Set the `file_id`'s of the files that were just uploaded to Telegram in new variable.
     tor_sig_id = tor_sig_object["document"]["file_id"]
-    tor_bin_id = tor_big_object["document"]["file_id"]
+    tor_bin_id = tor_bin_object["document"]["file_id"]
 
     # Temporary test for sending cached media.
 
