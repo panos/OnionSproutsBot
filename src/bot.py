@@ -36,6 +36,8 @@ OnionSproutsBot = Client(
     bot_token=botToken
 )
 
+
+# TODO: Show a progress bar in a Telegram message instead of using stdout.
 def progress(current, total):
     print(f"{current / total * 100:.1f}%")
 
@@ -55,10 +57,10 @@ locales in the future.
 async def start_command(client, message):
         await client.send_message(
             chat_id=message.chat.id,
-            text="Hi, welcome to OnionSproutsBot! Press the button if you wish to receive a copy of The Tor Browser.",
+            text="Hi, welcome to OnionSproutsBot! What would you like to do?",
 	    reply_markup=InlineKeyboardMarkup(
 	            [
-                        [InlineKeyboardButton("Receive a copy of Tor", "request_tor")],
+                        [InlineKeyboardButton("Download the desktop version of The Tor Browser.", "request_tor")],
                         [InlineKeyboardButton("What is Tor?", "explain_tor")]
                     ]
             )
@@ -70,19 +72,17 @@ async def send_explanation(client, callback):
     await client.send_message(callback.from_user.id, "This is a placeholder.")
 
 
+'''
+People generally don't cryptographically verify binaries. It could be a
+good idea to take advantage of the nature of an IM platform and teach
+people how to do that in a user-centered manner. Splitting this into
+a selection prompt where the user consents to being sent a copy of Tor
+could be beneficial.
+'''
+
 @OnionSproutsBot.on_callback_query(filters.regex("request_tor"))
 async def tor_requested(client, callback):
-    await client.send_message(callback.from_user.id, "Got it! I'm going to download, then send you, a copy of The Tor Browser.")
-
-    '''
-    People generally don't cryptographically verify binaries. It could be a
-    good idea to take advantage of the nature of an IM platform and teach
-    people how to do that in a user-centered manner. Splitting this into
-    a selection prompt where the user consents to being sent a copy of Tor
-    could be beneficial.
-    '''
-
-    await client.send_message(callback.from_user.id, "I will also send you a cryptographic signature, in order for you to be able to establish that it is legitimate.")
+    await client.send_message(callback.from_user.id, "Got it! I will ask you a few questions first.")
 
     platform_keyboard = []
 
@@ -94,7 +94,7 @@ async def tor_requested(client, callback):
         )
 
     platform_markup = InlineKeyboardMarkup([platform_keyboard])
-    await client.send_message(callback.from_user.id, "Please select your platform:", reply_markup=platform_markup)
+    await client.send_message(callback.from_user.id, "Which operating system are you using?", reply_markup=platform_markup)
 
 
 @OnionSproutsBot.on_callback_query(filters.regex("select_locale:"))
@@ -110,7 +110,7 @@ async def locale_selected(client, callback):
         )
 
     platform_markup = InlineKeyboardMarkup([platform_keyboard])
-    await client.send_message(callback.from_user.id, "Now, select your locale:", reply_markup=platform_markup)
+    await client.send_message(callback.from_user.id, "Which language would you like to use?", reply_markup=platform_markup)
 
 
 @OnionSproutsBot.on_callback_query(filters.regex("download_tor"))
@@ -118,6 +118,8 @@ async def send_tor(client, callback):
     print(callback.data)
     platform = callback.data.split(':')[1]
     locale = callback.data.split(':')[2]
+    send_sig_success = False
+    send_bin_success = False
 
     '''
     Detecting the language that the user speaks is not reliable
@@ -133,9 +135,6 @@ async def send_tor(client, callback):
 
     tor_sig = response['downloads'][platform][locale]['sig']
     tor_bin = response['downloads'][platform][locale]['binary']
-
-    send_sig_success = False
-    send_bin_success = False
 
     '''
     Each of the two files have an original name, as described by the
@@ -156,10 +155,15 @@ async def send_tor(client, callback):
     tor_sig_original_name = tor_sig.rsplit('/')[-1]
     tor_bin_original_name = tor_bin.rsplit('/', 1)[-1]
 
+    # TODO: Check if a copy has already been uploaded to Telegram.
+
     tor_sig_name = f"{tor_sig_original_name.rsplit('.')[0]}-{time()}.tar.xz.asc"
     tor_bin_name = f"{tor_bin_original_name.rsplit('.')[0]}-{time()}.tar.xz"
 
     await client.send_message(callback.from_user.id, "Sending the files right now, please wait...")
+
+    # TODO: Put the upload mechanism in a separate function instead of copying and pasting code.
+    # Doing so will be useful if we decide to add support for other platforms/software as well.
 
     # Upload the signature.
     download_sig = requests.get(tor_sig, allow_redirects=True, stream=True)
