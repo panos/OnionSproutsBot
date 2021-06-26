@@ -41,6 +41,45 @@ OnionSproutsBot = Client(
 def progress(current, total):
     print(f"{current / total * 100:.1f}%")
 
+# TODO: Improve path.
+async def relay_files(
+    client: Client,
+    callback: str,
+    url: str,
+    original_name: str,
+    final_name: str
+) -> int:
+    data = requests.get(url, allow_redirects=True, stream=True)
+    send_success = False
+
+    with open(f'../downloads/{final_name}', 'wb') as f:
+        f.write(data.content)
+
+    try:
+        file_object = await client.send_document(
+            callback.from_user.id,
+            document = f"../downloads/{final_name}",
+            file_name = original_name,
+            progress = progress
+        )
+
+        file_id = file_object["document"]["file_id"]
+        send_success = True
+
+        # TODO: Remove this, this is a temporary means of testing whether file IDs work properly.
+        await client.send_cached_media(callback.from_user.id, file_id=file_id)
+    except Exception as e:
+        print(e)
+        await client.send_message(
+            callback.from_user.id,
+            f"Upload failed! Reason: `{e}`"
+        )
+
+    if send_success == True:
+        return file_id
+    else:
+        return -1
+
 
 '''
 TO-DO: Ask for the locale when the user initiates the bot, rather
@@ -60,7 +99,7 @@ async def start_command(client, message):
             text="Hi, welcome to OnionSproutsBot! What would you like to do?",
 	    reply_markup=InlineKeyboardMarkup(
 	            [
-                        [InlineKeyboardButton("Download the desktop version of The Tor Browser.", "request_tor")],
+                        [InlineKeyboardButton("Download The Tor Browser (Desktop)", "request_tor")],
                         [InlineKeyboardButton("What is Tor?", "explain_tor")]
                     ]
             )
@@ -115,11 +154,14 @@ async def locale_selected(client, callback):
 
 @OnionSproutsBot.on_callback_query(filters.regex("download_tor"))
 async def send_tor(client, callback):
+    # TODO: Remove this print statement.
     print(callback.data)
     platform = callback.data.split(':')[1]
     locale = callback.data.split(':')[2]
+    user_id = callback.from_user.id
     send_sig_success = False
     send_bin_success = False
+    found_in_database = False
 
     '''
     Detecting the language that the user speaks is not reliable
@@ -131,10 +173,10 @@ async def send_tor(client, callback):
     `locale = callback.from_user.language_code`
     '''
 
-    await client.send_message(callback.from_user.id, "OK!")
+    await client.send_message(user_id, "OK!")
 
-    tor_sig = response['downloads'][platform][locale]['sig']
-    tor_bin = response['downloads'][platform][locale]['binary']
+    tor_sig_url = response['downloads'][platform][locale]['sig']
+    tor_bin_url = response['downloads'][platform][locale]['binary']
 
     '''
     Each of the two files have an original name, as described by the
@@ -152,77 +194,61 @@ async def send_tor(client, callback):
     extremely unlikely to happen. Diagnosing issues should also be easier.
     '''
 
-    tor_sig_original_name = tor_sig.rsplit('/')[-1]
-    tor_bin_original_name = tor_bin.rsplit('/', 1)[-1]
+    tor_sig_original_name = tor_sig_url.rsplit('/')[-1]
+    tor_bin_original_name = tor_bin_url.rsplit('/', 1)[-1]
 
     # TODO: Check if a copy has already been uploaded to Telegram.
 
     tor_sig_name = f"{tor_sig_original_name.rsplit('.')[0]}-{time()}.tar.xz.asc"
     tor_bin_name = f"{tor_bin_original_name.rsplit('.')[0]}-{time()}.tar.xz"
 
-    await client.send_message(callback.from_user.id, "Sending the files right now, please wait...")
+    await client.send_message(user_id, "Sending the files right now, please wait...")
 
-    # TODO: Put the upload mechanism in a separate function instead of copying and pasting code.
-    # Doing so will be useful if we decide to add support for other platforms/software as well.
-
-    # Upload the signature.
-    download_sig = requests.get(tor_sig, allow_redirects=True, stream=True)
-
-    with open(f'../downloads/{tor_sig_name}', 'wb') as f:
-        f.write(download_sig.content)
-
-    try:
-        tor_sig_object = await client.send_document(
-            callback.from_user.id,
-            document = f"../downloads/{tor_sig_name}",
-            file_name = tor_sig_original_name,
-            progress = progress
+    if found_in_database == False:
+        tor_sig_id = await relay_files(
+            client,
+            callback,
+            tor_sig_url,
+            tor_sig_original_name,
+            tor_sig_name
         )
 
-        tor_sig_id = tor_sig_object["document"]["file_id"]
-        send_sig_success = True
-
-        # TODO: Remove this, this is a temporary means of testing whether file IDs work properly.
-        await client.send_cached_media(callback.from_user.id, file_id=tor_sig_id)
-    except Exception as e:
-        print(e)
-        await client.send_message(
-            callback.from_user.id,
-            f"Signature upload failed! Reason: `{e}`"
+        tor_bin_id = await relay_files(
+            client,
+            callback,
+            tor_bin_url,
+            tor_bin_original_name,
+            tor_bin_name
         )
 
-    # Upload the binary.
-    download_bin = requests.get(tor_bin, allow_redirects=True, stream=True)
 
-    with open(f'../downloads/{tor_bin_name}', 'wb') as f:
-        f.write(download_bin.content)
+    if tor_sig_id != -1:
+        send_sig_success == True
 
-    try:
-        tor_bin_object = await client.send_document(
-            callback.from_user.id,
-            document = f"../downloads/{tor_bin_name}",
-            file_name = tor_bin_original_name,
-            progress = progress
-        )
-
-        tor_bin_id = tor_bin_object["document"]["file_id"]
-        send_bin_success = True
-
-        # TODO: Remove this, this is a temporary means of testing whether file IDs work properly.
-        await client.send_cached_media(callback.from_user.id, file_id=tor_bin_id)
-    except Exception as e:
-        print(e)
-        await client.send_message(
-            callback.from_user.id,
-            f"Binary upload failed! Reason: `{e}`"
-        )
+    if tor_bin_id != -1:
+        send_bin_success == True
 
     '''
     TODO: Store `tor_sig_file.id and tor_bin_file.id` in a database.
     Handle download and HTTP request failures.
     '''
 
+    # This could be written in a simpler manner with a lambda operator
+    # but doing so will overcomplicate the code for no reason and deter
+    # maintainers and prospective contributors from ever touching it.
     if send_bin_success == True and send_sig_success == True:
+        upload_succeeded = True
+    else:
+        upload_succeeded = False
+
+    if upload_succeeded == True:
+        # TODO: Store tor_bin_id and tor_sig_id in database.
+        pass
+    elif upload_succeeded == False and found_in_database == True:
+        # TODO: Do not do anything.
+        pass
+    else:
+        # TODO: What could possibly go wrong? Should this case be handled earlier on?
         pass
 
 
