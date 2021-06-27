@@ -6,7 +6,7 @@ Telegram bot for delivering The Tor Project's software to people in sensitive ge
 
 - Install the required Python modules.
 
-Running `pip3 install -r requirements.txt` should suffice on a system with [Python 3.6+](https://python.org) and [pip](https://pypi.org/project/pip/) installed.
+Running `pip3 install -r requirements.txt` should suffice on a system with [Python 3.7+](https://python.org) and [pip](https://pypi.org/project/pip/) installed.
 
 - Follow [Pyrogram's Project Setup Guide](https://docs.pyrogram.org/intro/setup).
 
