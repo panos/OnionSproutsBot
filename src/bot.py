@@ -13,6 +13,7 @@ from config import *
 
 import asyncio
 import io
+import logging
 import os
 import requests
 import re
@@ -36,10 +37,17 @@ OnionSproutsBot = Client(
     bot_token=botToken
 )
 
+logging.basicConfig(
+    filename="onionsproutsbot.log",
+    encoding='utf-8',
+    level=logging.DEBUG
+)
+
+logging.getLogger().addHandler(logging.StreamHandler()) # prints to stderr
 
 # TODO: Show a progress bar in a Telegram message instead of using stdout.
 def progress(current, total):
-    print(f"{current / total * 100:.1f}%")
+    logging.debug(f"{current / total * 100:.1f}%")
 
 # TODO: Improve path.
 async def relay_files(
@@ -69,7 +77,7 @@ async def relay_files(
         # TODO: Remove this, this is a temporary means of testing whether file IDs work properly.
         await client.send_cached_media(callback.from_user.id, file_id=file_id)
     except Exception as e:
-        print(e)
+        logging.exception(e)
         await client.send_message(
             callback.from_user.id,
             f"Upload failed! Reason: `{e}`"
@@ -154,8 +162,7 @@ async def locale_selected(client, callback):
 
 @OnionSproutsBot.on_callback_query(filters.regex("download_tor"))
 async def send_tor(client, callback):
-    # TODO: Remove this print statement.
-    print(callback.data)
+    logging.debug(f"Command issued: {callback.data}")
     platform = callback.data.split(':')[1]
     locale = callback.data.split(':')[2]
     user_id = callback.from_user.id

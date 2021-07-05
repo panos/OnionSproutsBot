@@ -6,6 +6,9 @@ __pycache__
 # gettor downloads
 downloads/*
 
+# logs
+*.log
+
 # pyrogram
 unknown_errors.txt
 OnionSproutsBot.session
